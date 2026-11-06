@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero p-4 p-md-5 rounded-4 mb-4">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-7">
+      <span class="eyebrow">AI-POWERED FOOD INTELLIGENCE</span>
+      <h1 class="display-5 fw-bold mt-2">Know what's on your plate.</h1>
+      <p class="lead">Upload a food photo to identify a dish and explore estimated calories and nutrients.</p>
+      <a class="btn btn-success btn-lg" href="#analyzer">Analyze food <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="col-lg-5"><div class="hero-art">🥑 🍓 🥗 🍲</div></div>
+  </div>
+</section>
+<section id="analyzer" class="panel p-4 rounded-4">
+  <h2 class="h3 fw-bold">Food Analyzer</h2>
+  <p class="text-muted">Use one clear dish per image for the best result.</p>
+  <form id="analyzeForm">
+    <label for="foodImage" class="upload-box w-100 text-center p-4">
+      <div class="display-6">📷</div>
+      <strong>Choose a food image</strong>
+      <div class="small text-muted">JPG, PNG or WEBP • Maximum 8 MB</div>
+      <input class="form-control mt-3" type="file" id="foodImage" name="food_image" accept="image/*" required>
+    </label>
+    <button class="btn btn-success mt-3" id="analyzeBtn" type="submit">Analyze image</button>
+  </form>
+  <div id="loading" class="mt-3 text-success" hidden>Analyzing image. First prediction may take longer while the AI model downloads…</div>
+  <div id="error" class="alert alert-danger mt-3" hidden></div>
+  <div id="result" class="mt-4" hidden></div>
+</section>
+{% endblock %}

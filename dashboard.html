@@ -1,0 +1,399 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <span class="eyebrow">YOUR NUTRITION SPACE</span>
+    <h1 class="h2 fw-bold">Hello, {{ name }}!</h1>
+    <p class="text-muted mb-0">
+      Track your food and understand your daily nutrition.
+    </p>
+  </div>
+
+  <a class="btn btn-success mt-3 mt-md-0" href="/"> + Analyze another food </a>
+</div>
+
+<!-- DAILY NUTRITION DASHBOARD -->
+
+<div class="panel p-4 rounded-4 mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+    <div>
+      <span class="eyebrow">YOUR DAILY REPORT</span>
+      <h2 class="h4 fw-bold mb-1">Daily Nutrition Dashboard</h2>
+      <p class="text-muted mb-0">Nutrition from your food analyses today.</p>
+    </div>
+
+    <input
+      type="date"
+      id="summaryDate"
+      class="form-control"
+      style="max-width: 190px"
+    />
+  </div>
+
+  <div id="summaryMessage" class="text-muted mb-3">
+    Loading daily nutrition...
+  </div>
+
+  <div class="row g-3">
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="p-3 rounded-3 bg-light h-100">
+        <div class="text-muted small">Calories</div>
+        <div class="h4 fw-bold text-success mb-0">
+          <span id="totalCalories">0</span>
+        </div>
+        <small class="text-muted">kcal</small>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="p-3 rounded-3 bg-light h-100">
+        <div class="text-muted small">Protein</div>
+        <div class="h4 fw-bold mb-0">
+          <span id="totalProtein">0</span>
+        </div>
+        <small class="text-muted">grams</small>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="p-3 rounded-3 bg-light h-100">
+        <div class="text-muted small">Carbs</div>
+        <div class="h4 fw-bold mb-0">
+          <span id="totalCarbs">0</span>
+        </div>
+        <small class="text-muted">grams</small>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="p-3 rounded-3 bg-light h-100">
+        <div class="text-muted small">Fat</div>
+        <div class="h4 fw-bold mb-0">
+          <span id="totalFat">0</span>
+        </div>
+        <small class="text-muted">grams</small>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="p-3 rounded-3 bg-light h-100">
+        <div class="text-muted small">Fiber</div>
+        <div class="h4 fw-bold mb-0">
+          <span id="totalFiber">0</span>
+        </div>
+        <small class="text-muted">grams</small>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg-2">
+      <div class="p-3 rounded-3 bg-light h-100">
+        <div class="text-muted small">Sugar</div>
+        <div class="h4 fw-bold mb-0">
+          <span id="totalSugar">0</span>
+        </div>
+        <small class="text-muted">grams</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-3 text-muted small">
+    Foods analyzed today:
+    <strong id="totalFoods">0</strong>
+  </div>
+</div>
+
+<!-- FOOD HISTORY -->
+
+<div class="panel p-4 rounded-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <span class="eyebrow">YOUR PREVIOUS SCANS</span>
+      <h2 class="h4 fw-bold mb-0">Food History</h2>
+    </div>
+
+    <button class="btn btn-outline-success btn-sm" onclick="loadHistory()">
+      Refresh
+    </button>
+  </div>
+
+  <div id="history">
+    <p class="text-muted">Loading your food history...</p>
+  </div>
+</div>
+
+<!-- AI MEAL SUGGESTIONS -->
+
+<div class="panel p-4 rounded-4 mb-4">
+  <span class="eyebrow">SMART FOOD IDEAS</span>
+  <h2 class="h4 fw-bold">AI Meal Suggestions</h2>
+
+  <p class="text-muted">
+    Explore meal ideas with approximate nutrition information.
+  </p>
+
+  <div id="suggestionMessage" class="text-muted">
+    Loading meal suggestions...
+  </div>
+
+  <div class="row g-3" id="suggestionContainer"></div>
+
+  <p class="text-muted small mt-3 mb-0">
+    Suggestions are generated using a simple nutrition-based ranking. They are
+    general ideas, not personalized medical or dietary advice.
+  </p>
+</div>
+
+<script>
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, function (char) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      }[char];
+    });
+  }
+
+  // ================= DAILY NUTRITION =================
+
+  async function loadDailySummary() {
+    const date = document.getElementById("summaryDate").value;
+
+    const message = document.getElementById("summaryMessage");
+
+    message.textContent = "Loading daily nutrition...";
+
+    try {
+      const response = await fetch(
+        "/api/daily-summary?date=" + encodeURIComponent(date),
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not load daily summary.");
+      }
+
+      const totals = data.totals || {};
+
+      document.getElementById("totalCalories").textContent =
+        totals.calories ?? 0;
+
+      document.getElementById("totalProtein").textContent = totals.protein ?? 0;
+
+      document.getElementById("totalCarbs").textContent = totals.carbs ?? 0;
+
+      document.getElementById("totalFat").textContent = totals.fat ?? 0;
+
+      document.getElementById("totalFiber").textContent = totals.fiber ?? 0;
+
+      document.getElementById("totalSugar").textContent = totals.sugar ?? 0;
+
+      document.getElementById("totalFoods").textContent = data.total_foods ?? 0;
+
+      message.textContent = data.total_foods
+        ? "Here is your nutrition summary for " + data.date + "."
+        : "No food analyses found for this date. Analyze a food to start tracking!";
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  }
+
+  // ================= FOOD HISTORY =================
+
+  async function loadHistory() {
+    const container = document.getElementById("history");
+
+    container.innerHTML = '<p class="text-muted">Loading food history...</p>';
+
+    try {
+      const response = await fetch("/api/history");
+
+      if (!response.ok) {
+        throw new Error("Could not load food history.");
+      }
+
+      const data = await response.json();
+
+      if (!data.logs || data.logs.length === 0) {
+        container.innerHTML = `
+                <div class="text-center py-4">
+                    <div style="font-size: 40px;">🥗</div>
+                    <h5>No food history yet</h5>
+                    <p class="text-muted">
+                        Upload your first food image to see your history here.
+                    </p>
+                    <a href="/" class="btn btn-success btn-sm">
+                        Analyze Food
+                    </a>
+                </div>
+            `;
+
+        return;
+      }
+
+      container.innerHTML = data.logs
+        .map(
+          (item) => `
+
+            <div class="d-flex justify-content-between align-items-center
+                        border-bottom py-3 gap-3">
+
+                <div>
+                    <div class="fw-bold">
+                        ${escapeHTML(item.food)}
+                    </div>
+
+                    <small class="text-muted">
+                        ${escapeHTML(item.date)}
+                    </small>
+                </div>
+
+                <div class="text-end">
+                    <span class="badge bg-success">
+                        ${escapeHTML(item.calories)} kcal
+                    </span>
+                </div>
+
+            </div>
+
+        `,
+        )
+        .join("");
+    } catch (error) {
+      container.innerHTML = `
+            <p class="text-danger">
+                ${escapeHTML(error.message)}
+            </p>
+        `;
+    }
+  }
+
+  // ================= MEAL SUGGESTIONS =================
+
+  async function loadMealSuggestions() {
+    const message = document.getElementById("suggestionMessage");
+
+    const container = document.getElementById("suggestionContainer");
+
+    message.textContent = "Loading meal suggestions...";
+
+    try {
+      const response = await fetch("/api/meal-suggestions");
+
+      if (!response.ok) {
+        throw new Error("Could not load meal suggestions.");
+      }
+
+      const data = await response.json();
+
+      const suggestions = data.suggestions || {};
+
+      const mealDetails = {
+        breakfast: {
+          icon: "🌅",
+          title: "Breakfast",
+        },
+
+        lunch: {
+          icon: "🍛",
+          title: "Lunch",
+        },
+
+        dinner: {
+          icon: "🌙",
+          title: "Dinner",
+        },
+
+        snacks: {
+          icon: "🍎",
+          title: "Healthy Snacks",
+        },
+      };
+
+      let html = "";
+
+      for (const meal in mealDetails) {
+        const foods = suggestions[meal] || [];
+
+        html += `
+                <div class="col-12 col-md-6">
+
+                    <div class="bg-light rounded-4 p-3 h-100">
+
+                        <h5 class="fw-bold mb-3">
+                            ${mealDetails[meal].icon}
+                            ${mealDetails[meal].title}
+                        </h5>
+            `;
+
+        if (foods.length === 0) {
+          html += `
+                    <p class="text-muted">
+                        No suggestions available.
+                    </p>
+                `;
+        } else {
+          foods.forEach((food) => {
+            html += `
+                        <div class="border-bottom py-2">
+
+                            <div class="fw-semibold">
+                                ${escapeHTML(food.food)}
+                            </div>
+
+                            <div class="small text-muted">
+                                ${escapeHTML(food.calories)} kcal
+                                &nbsp; | &nbsp;
+                                Protein: ${escapeHTML(food.protein)} g
+                                &nbsp; | &nbsp;
+                                Fiber: ${escapeHTML(food.fiber)} g
+                            </div>
+
+                        </div>
+                    `;
+          });
+        }
+
+        html += `
+                    </div>
+                </div>
+            `;
+      }
+
+      container.innerHTML = html;
+
+      message.textContent = "Here are some meal ideas for you.";
+    } catch (error) {
+      message.textContent = error.message;
+    }
+  }
+
+  // ================= INITIALIZE DASHBOARD =================
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const dateInput = document.getElementById("summaryDate");
+
+    const today = new Date();
+
+    const localDate = new Date(
+      today.getTime() - today.getTimezoneOffset() * 60000,
+    )
+      .toISOString()
+      .split("T")[0];
+
+    dateInput.value = localDate;
+
+    dateInput.addEventListener("change", loadDailySummary);
+
+    loadDailySummary();
+
+    loadHistory();
+
+    loadMealSuggestions();
+  });
+</script>
+
+{% endblock %}
